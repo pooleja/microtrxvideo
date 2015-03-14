@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>microTrx</title>
+
+    <script type="text/javascript">
+      document.createElement('video');document.createElement('audio');document.createElement('track');
+    </script>
+
+  </head>
+  <body>
+    <div class="container">
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Sample Video Player</h3>
+        </div>
+        <div class="panel-body " >
+
+          <video id="example_video_1" class="video-js vjs-default-skin center-block" preload="auto" width="640" height="360">
+           <source src="/videos/PatrickByrne_preview.mp4" type='video/mp4' />
+           <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>
+          </video>
+
+        </div>
+      </div>
+
+      <!-- Modal -->
+      <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="myModalLabel">See the Entire Video</h4>
+            </div>
+            <div class="modal-body">
+              <div class="container">
+                <div class="row">
+                    <div class="col-md-4">
+                      <div id="payment-qr-code"></div>
+                    </div>
+                    <div class="col-md-4"><a id="payment-link" href="" >Click here to pay</a></div>
+                </div>
+                <div class="row">
+                  <div id="payment-details" ></div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">No Thanks</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <link type='css' rel='stylesheet' href='/stylesheets/bootstrap.min.css' />
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="/javascripts/jquery-2.1.1.min.js"></script>
+
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="/javascripts/bitcore.min.js"></script>
+    <script src="/javascripts/bootstrap.min.js"></script>
+
+    <script src="/javascripts/jquery.qrcode.min.js"></script>
+
+    <link href="//vjs.zencdn.net/4.12/video-js.css" rel="stylesheet">
+    <script src="//vjs.zencdn.net/4.12/video.js"></script>
+
+  </body>
+</html>
