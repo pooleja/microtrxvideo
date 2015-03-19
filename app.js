@@ -4,11 +4,28 @@ var favicon = require('serve-favicon');
 var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
+var session = require('express-session');
+var MongoStore = require('connect-mongo')(session);
 
+var Env = require('./config/env.js');
 var routes = require('./routes/index');
-var users = require('./routes/users');
+var apiRoutes = require('./routes/api');
 
 var app = express();
+
+var mongoose = require('mongoose');
+mongoose.connect(Env.MONGO_CONNECTION_STRING);
+
+
+app.set('trust proxy', 1)
+app.use(session({
+  secret: Env.COOKIE_SECRET,
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 day cookie expiration
+    secure: Env.SECURE_COOKIES
+  },
+  store: new MongoStore({ mongooseConnection: mongoose.connection }) // Use mongodb to store connection info
+}));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -23,7 +40,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', routes);
-app.use('/users', users);
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -56,5 +73,20 @@ app.use(function(err, req, res, next) {
     });
 });
 
+
+// Temp for generating sample db data
+/*
+var Video = require('./models/video.js');
+
+// Create a registration object
+   var videoRequest = {
+      id : "1",
+      paymentPrice : 0.0001,
+      expireHours : 168
+   };
+
+   Video(videoRequest).save(function (err, tempRegistration) {
+   });
+*/
 
 module.exports = app;
