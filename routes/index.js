@@ -14,16 +14,21 @@ router.get('/videos/:videoId', function(req, res) {
 
 router.get('/api/videos/:videoId', function(req, res) {
 
-  service.getVideoInfo(req.sessionId, req.params.videoId, req.query.timeout, function(error, verification){
+  console.log("Getting information from API for video " + req.params.videoId + " for session " + req.sessionID + " with timeout " + req.query.timeout);
+
+  service.getVideoInfo(req.sessionID, req.params.videoId, req.query.timeout, function(error, videoInfo){
 
     // Check for failure
     if(error){
-       res.json ( {success : false, error: error});
-       return;
+      console.log("API call failed " + error);
+      res.json ( {success : false, error: error});
+      return;
     }
 
+    //console.log("API call succeeded " + JSON.stringify(videoInfo));
+
     // Success
-    res.json({success : true, result: verification});
+    res.json({success : true, result: videoInfo });
 
   });
 });

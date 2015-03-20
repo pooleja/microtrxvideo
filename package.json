@@ -16,6 +16,8 @@
     "express-session": "1.10.4",
     "connect-mongo" : "0.7.0",
     "bitcore" : "0.11.4",
-    "mongoose" : "3.8.25"
+    "mongoose" : "3.8.25",
+    "cloudfront-private-url-creator" : "1.0.51",
+    "request": "2.53.0"
   }
 }

@@ -18,12 +18,13 @@ $( document ).ready(function() {
       if(info.paid){
 
         // If already paid for, just load the full video and wait for the user to watch
-        myPlayer.src(info.paidUrl);
+        this.src(info.paidVideoUrl);
+
 
       } else {
 
         // If not already paid for, load the preview video
-        myPlayer.src(info.previewUrl);
+        this.src(info.previewVideoUrl);
 
         // Set an event for when the preview video is finished
         this.on("ended",function(){
@@ -58,6 +59,8 @@ function getVideoInfo(timeout, callback){
 
     // Check for API success
     if(res.success == true){
+
+        console.log("Got back info from video: " + JSON.stringify(res.result));
 
         // Call the callback function with API data
         callback(null, res.result);
@@ -106,7 +109,7 @@ function verifyPayment(paymentAddress){
 
       var myPlayer = videojs('video_player');
       myPlayer.off('ended');
-      myPlayer.src(info.paidUrl);
+      myPlayer.src(info.paidVideoUrl);
       myPlayer.play();
 
     } else {
