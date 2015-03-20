@@ -9,7 +9,6 @@ var MongoStore = require('connect-mongo')(session);
 
 var Env = require('./config/env.js');
 var routes = require('./routes/index');
-var apiRoutes = require('./routes/api');
 
 var app = express();
 
