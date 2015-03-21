@@ -70,13 +70,11 @@ function loadPrivateKey(cb) {
   });
 }
 
-function generatePaidVideoUrl(videoId, expireHours, callback){
+function generatePaidVideoUrl(videoId, expireDate, callback){
 
   var videoUrl = Env.PAID_VIDEO_PREFIX_URL + videoId + ".mp4";
 
-  var dateLessThan = new Date();
-  dateLessThan.setHours(dateLessThan.getHours() + expireHours);
-  console.log("Expriring link at time: " + dateLessThan.getTime());
+  console.log("Expriring link at time: " + expireDate.getTime());
 
   loadPrivateKey(function privateKeyCb(err, keyContents) {
     if (err) {
@@ -87,7 +85,7 @@ function generatePaidVideoUrl(videoId, expireHours, callback){
     var config = {
       privateKey: keyContents,
       keyPairId: Env.KEYPAIR_ID,
-      dateLessThan: dateLessThan
+      dateLessThan: expireDate
     };
 
     callback(null, cf.signUrl(videoUrl, config));
@@ -135,7 +133,8 @@ VideoService.prototype.getVideoInfo = function(sessionId, videoId, timeout, call
             paymentUrl : foundView.paymentUrl,
             paid : foundView.paid,
             previewVideoUrl : generatePreviewUrl(videoId),
-            paidVideoUrl : foundView.paidVideoUrl
+            paidVideoUrl : foundView.paidVideoUrl,
+            expireDate : foundView.expireDate
           };
 
           // Check to see if the user already paid
@@ -162,7 +161,10 @@ VideoService.prototype.getVideoInfo = function(sessionId, videoId, timeout, call
 
               console.log("According to payment gateway, payment has already been made.");
 
-              generatePaidVideoUrl(videoId, foundVideo.expireHours, function(error, paidUrl){
+              var expireDate = new Date();
+              expireDate.setHours(expireDate.getHours() + foundVideo.expireHours);
+
+              generatePaidVideoUrl(videoId, expireDate, function(error, paidUrl){
 
                 if(error){
                   console.log("Failed to generate paid URL for video " + videoId + " with error " + error);
@@ -172,6 +174,7 @@ VideoService.prototype.getVideoInfo = function(sessionId, videoId, timeout, call
 
                 foundView.paid = paymentInfo.paid;
                 foundView.paidVideoUrl = paidUrl;
+                foundView.expireDate = expireDate;
 
                 // Update the view in the DB
                 foundView.save(function(error){
@@ -185,12 +188,13 @@ VideoService.prototype.getVideoInfo = function(sessionId, videoId, timeout, call
                   // Update with the latest payment status and give them the paid link
                   returnData.paid = foundView.paid;
                   returnData.paidVideoUrl = foundView.paidVideoUrl;
+                  returnData.expireDate = foundView.expireDate;
 
                   callback(null, returnData);
                   return;
                 });
 
-              });              
+              });
 
             } else {
 

@@ -1,6 +1,28 @@
 
 $( document ).ready(function() {
 
+  $( "#pay-now-button" ).click(function() {
+
+    getVideoInfo(0, function(error, info){
+
+      // Check for API failure
+      if(error){
+        showError(error);
+        return;
+      }
+
+      var myPlayer = videojs('video_player');
+      myPlayer.pause();
+
+      // First get payment details for the modal dialog
+      generatePaymentDetails(info);
+
+      // Show the paywall modal dialog
+      $('#myModal').modal();
+    });
+    
+  });
+
   // Get API info about video and whether it has already been paid for - do not wait (0 seconds timeout)
   getVideoInfo(0, function(error, info){
 
@@ -17,8 +39,10 @@ $( document ).ready(function() {
 
       if(info.paid){
 
+        console.log("Already paid");
+
         // If already paid for, just load the full video and wait for the user to watch
-        this.src(info.paidVideoUrl);
+        setPaidVideoUI(this, info);
 
 
       } else {
@@ -41,6 +65,22 @@ $( document ).ready(function() {
   });
 
 });
+
+function setPaidVideoUI(player, info){
+
+  player.src(info.paidVideoUrl);
+
+  console.log("showing download link");
+  $("#download-now").show();
+  $("#download-now-link").attr('href', info.paidVideoUrl);
+
+  var options = {
+    weekday: "long", year: "numeric", month: "short",
+    day: "numeric", hour: "2-digit", minute: "2-digit"
+  };
+
+  $("#download-now-expires").text("Video link expires on " + new Date(info.expireDate).toLocaleTimeString("en-us", options));
+}
 
 function getVideoInfo(timeout, callback){
 
@@ -109,7 +149,9 @@ function verifyPayment(paymentAddress){
 
       var myPlayer = videojs('video_player');
       myPlayer.off('ended');
-      myPlayer.src(info.paidVideoUrl);
+
+      setPaidVideoUI(myPlayer, info);
+
       myPlayer.play();
 
     } else {
