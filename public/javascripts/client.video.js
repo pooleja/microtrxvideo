@@ -20,7 +20,7 @@ $( document ).ready(function() {
       // Show the paywall modal dialog
       $('#myModal').modal();
     });
-    
+
   });
 
   // Get API info about video and whether it has already been paid for - do not wait (0 seconds timeout)
@@ -70,7 +70,8 @@ function setPaidVideoUI(player, info){
 
   player.src(info.paidVideoUrl);
 
-  console.log("showing download link");
+  $("#pay-now").hide();
+
   $("#download-now").show();
   $("#download-now-link").attr('href', info.paidVideoUrl);
 
