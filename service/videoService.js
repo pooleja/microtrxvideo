@@ -13,26 +13,119 @@ function VideoService(){
 
 }
 
+VideoService.prototype.getVideoInfo = function(sessionId, videoId, timeout, callback){
+
+  var timeoutSeconds = 0;
+
+  if(timeout && timeout > 0 && timeout <= 30)
+    timeoutSeconds = timeout;
+
+  // Get the info for the video requested
+  Video.findOne({ id : videoId }, function(err, foundVideo){
+
+    // Verify that we found a video with that ID
+    if(err || !foundVideo){
+       console.log("Failed to find video " + videoId + " with error " + err);
+       callback("Failed to find video " + videoId);
+       return;
+    }
+
+    // Find a video view object that was previously created
+    View.findOne({ sessionId: sessionId, videoId: videoId }, function(err, foundView){
+
+        // Validate no errors were encountered
+        if(err){
+           console.log("Failed to find video view for video " + videoId + " with session " + sessionId + "with error " + err);
+           callback("Failed to find video viewing info for video " + videoId);
+           return;
+        }
+
+        // Check to see if a record already exists
+        if(foundView){
+
+          console.log("Found view in db already for video " + videoId + " and session " + sessionId);
+
+          handleFoundView(foundVideo, foundView, timeoutSeconds, callback);
+
+        } else {
+
+          console.log("No existing view in db already for video " + videoId + " and session " + sessionId);
+
+          handleNewView(sessionId, foundVideo, timeoutSeconds, callback);
+        }
+
+    });
+
+  });
+
+};
+
 function generatePreviewUrl(videoId){
   return Env.PREVIEW_VIDEO_PREFIX_URL + videoId + ".mp4";
 }
 
-function getNewPaymentInfo(price, callback){
-  var requestUrl = Env.MICROTRX_ADDR + "api/v1/simple/payments?publicKey=" + Env.PUBKEY + "&amountRequested=" + price;
+function getPriceInfo(video, callback){
 
-  request({url: requestUrl, json: true}, function (error, response, paymentInfo) {
+  if(video.paymentDenomination == "BTC"){
 
-    if (error || response.statusCode != 200 || paymentInfo.success != "true") {
-        console.log("Error: " + JSON.stringify(error));
-        console.log("Response: " + JSON.stringify(response));
-        console.log("ReturnVal: " + JSON.stringify(paymentInfo));
-        callback("Error getting payment request for new view.");
-        return;
-    }
+    // Price was specified in BTC - just use that
+    var priceInfo = {
+      btcPrice : video.paymentPrice,
+      displayPrice : "" + video.paymentPrice + " BTC"
+    };
 
-    callback(null, paymentInfo.result);
+    callback(null, priceInfo);
+
+  }else{
+
+    // Get the USD price
+    var priceUrl = "https://api.coinbase.com/v1/prices/spot_rate";
+
+    request({url: priceUrl, json: true}, function (error, response, priceInfo) {
+
+      if (error || response.statusCode != 200) {
+          console.log("Error: " + JSON.stringify(error));
+          console.log("Response: " + JSON.stringify(response));
+          callback("Error getting price info request for new view.");
+          return;
+      }
+
+      var priceInfo = {
+        btcPrice : (video.paymentPrice / Number(priceInfo.amount)).toFixed(6),
+        displayPrice : "$" + video.paymentPrice + " USD"
+      };
+
+      callback(null, priceInfo);
+
+    });
+  }
+}
+
+function getNewPaymentInfo(video, callback){
+
+  getPriceInfo(video, function(error, priceInfo){
+
+    if(error)
+      callback(error);
+
+    var requestUrl = Env.MICROTRX_ADDR + "api/v1/simple/payments?publicKey=" + Env.PUBKEY + "&amountRequested=" + priceInfo.btcPrice;
+
+    request({url: requestUrl, json: true}, function (error, response, paymentInfo) {
+
+      if (error || response.statusCode != 200 || paymentInfo.success != "true") {
+          console.log("Error: " + JSON.stringify(error));
+          console.log("Response: " + JSON.stringify(response));
+          console.log("ReturnVal: " + JSON.stringify(paymentInfo));
+          callback("Error getting payment request for new view.");
+          return;
+      }
+
+      callback(null, paymentInfo.result, priceInfo);
+
+    });
 
   });
+
 }
 
 function checkPaymentStatus(address, timeout, callback){
@@ -93,166 +186,136 @@ function generatePaidVideoUrl(videoId, expireDate, callback){
 
 }
 
-VideoService.prototype.getVideoInfo = function(sessionId, videoId, timeout, callback){
+function handleFoundView(foundVideo, foundView, timeoutSeconds, callback){
 
-  var timeoutSeconds = 0;
+  var returnData = {
+    videoId : foundVideo.id,
+    paymentPrice : foundView.paymentPrice,
+    displayPrice : foundView.displayPrice,
+    paymentAddress : foundView.paymentAddress,
+    paymentUrl : foundView.paymentUrl,
+    paid : foundView.paid,
+    previewVideoUrl : generatePreviewUrl(foundVideo.id),
+    paidVideoUrl : foundView.paidVideoUrl,
+    expireDate : foundView.expireDate,
+  };
 
-  if(timeout && timeout > 0 && timeout <= 30)
-    timeoutSeconds = timeout;
+  // Check to see if the user already paid
+  if(foundView.paid){
 
-  Video.findOne({ id : videoId }, function(err, foundVideo){
+    console.log("View has already been paid for.  Returning immediately.")
 
-    // Verify that we found a video with that ID
-    if(err || !foundVideo){
-       console.log("Failed to find video " + videoId + " with error " + err);
-       callback("Failed to find video " + videoId);
-       return;
+    // The user already paid, so return data immediately
+    callback(null, returnData);
+    return;
+  }
+
+  // Payment was not yet paid, so check current status then return data to client
+  checkPaymentStatus(foundView.paymentAddress, timeoutSeconds, function(error, paymentInfo){
+
+    if(error){
+      console.log("Failed to get payment status for" + foundView.paymentAddress + " with error " + error);
+      callback(error);
+      return;
     }
 
-    console.log("Found video " + videoId);
+    // Customer has paid for the view of the video since we last checked
+    if(paymentInfo.paid){
 
-    // Find a video view object that was previously created
-    View.findOne({ sessionId: sessionId, videoId: videoId }, function(err, foundView){
+      console.log("According to payment gateway, payment has already been made.");
 
-        // Validate no errors were encountered
-        if(err){
-           console.log("Failed to find video view for video " + videoId + " with session " + sessionId + "with error " + err);
-           callback("Failed to find video viewing info for video " + videoId);
-           return;
+      var expireDate = new Date();
+      expireDate.setHours(expireDate.getHours() + foundVideo.expireHours);
+
+      generatePaidVideoUrl(foundVideo.id, expireDate, function(error, paidUrl){
+
+        if(error){
+          console.log("Failed to generate paid URL for video " + foundVideo.id + " with error " + error);
+          callback(error);
+          return;
         }
 
-        // Check to see if a record already exists
-        if(foundView){
+        foundView.paid = paymentInfo.paid;
+        foundView.paidVideoUrl = paidUrl;
+        foundView.expireDate = expireDate;
 
-          console.log("Found view in db already for video " + videoId + " and session " + sessionId);
+        // Update the view in the DB
+        foundView.save(function(error){
 
-          var returnData = {
-            videoId : videoId,
-            paymentPrice : foundVideo.paymentPrice,
-            paymentAddress : foundView.paymentAddress,
-            paymentUrl : foundView.paymentUrl,
-            paid : foundView.paid,
-            previewVideoUrl : generatePreviewUrl(videoId),
-            paidVideoUrl : foundView.paidVideoUrl,
-            expireDate : foundView.expireDate
-          };
-
-          // Check to see if the user already paid
-          if(foundView.paid){
-
-            console.log("View has already been paid for.  Returning immediately.")
-
-            // The user already paid, so return data immediately
-            callback(null, returnData);
+          if(error){
+            console.log("Failed to save video view info for " + foundView.paymentAddress + " with error " + error);
+            callback(error);
             return;
           }
 
-          // Payment was not yet paid, so check current status then return data to client
-          checkPaymentStatus(foundView.paymentAddress, timeoutSeconds, function(error, paymentInfo){
+          // Update with the latest payment status and give them the paid link
+          returnData.paid = foundView.paid;
+          returnData.paidVideoUrl = foundView.paidVideoUrl;
+          returnData.expireDate = foundView.expireDate;
 
-            if(error){
-              console.log("Failed to get payment status for" + foundView.paymentAddress + " with error " + error);
-              callback(error);
-              return;
-            }
+          callback(null, returnData);
+          return;
+        });
 
-            // Customer has paid for the view of the video since we last checked
-            if(paymentInfo.paid){
+      });
 
-              console.log("According to payment gateway, payment has already been made.");
+    } else {
 
-              var expireDate = new Date();
-              expireDate.setHours(expireDate.getHours() + foundVideo.expireHours);
+      console.log("According to payment gateway, payment has NOT already been made.");
 
-              generatePaidVideoUrl(videoId, expireDate, function(error, paidUrl){
+      // Customer still hasn't paid
+      callback(null, returnData);
+      return;
 
-                if(error){
-                  console.log("Failed to generate paid URL for video " + videoId + " with error " + error);
-                  callback(error);
-                  return;
-                }
+    }
 
-                foundView.paid = paymentInfo.paid;
-                foundView.paidVideoUrl = paidUrl;
-                foundView.expireDate = expireDate;
+  });
+}
 
-                // Update the view in the DB
-                foundView.save(function(error){
 
-                  if(error){
-                    console.log("Failed to save video view info for " + foundView.paymentAddress + " with error " + error);
-                    callback(error);
-                    return;
-                  }
+function handleNewView(sessionId, foundVideo, timeoutSeconds, callback){
 
-                  // Update with the latest payment status and give them the paid link
-                  returnData.paid = foundView.paid;
-                  returnData.paidVideoUrl = foundView.paidVideoUrl;
-                  returnData.expireDate = foundView.expireDate;
+  // No existing video view information found.  Request new payment info and create a new view object
+  getNewPaymentInfo(foundVideo, function(error, paymentInfo, priceInfo){
 
-                  callback(null, returnData);
-                  return;
-                });
+    if(error){
+      console.log("Failed to get payment info for video" + foundVideo.id + " with errro " + error);
+      callback(error);
+      return;
+    }
 
-              });
+    var createdView = {
+      sessionId: sessionId,
+      videoId: foundVideo.id,
+      paymentAddress: paymentInfo.paymentAddress,
+      paymentUrl: paymentInfo.paymentUrl,
+      paid: false,
+      displayPrice: priceInfo.displayPrice,
+      paymentPrice: priceInfo.btcPrice
+    }
 
-            } else {
+    View(createdView).save(function(error){
+      if(error){
+        console.log("Failed to create payment info for video" + foundVideo.id + " with errro " + error);
+        callback(error);
+        return;
+      }
 
-              console.log("According to payment gateway, payment has NOT already been made.");
+      var returnData = {
+        videoId : foundVideo.id,
+        paymentPrice : createdView.paymentPrice,
+        paymentAddress : createdView.paymentAddress,
+        paymentUrl : createdView.paymentUrl,
+        paid : createdView.paid,
+        previewVideoUrl : generatePreviewUrl(foundVideo.id),
+        displayPrice: createdView.displayPrice
+      };
 
-              // Payment status didn't change so let the customer know
-              callback(null, returnData);
-              return;
-            }
-
-          });
-        } else {
-
-          // No existing video view information found.  Request new payment info and create a new view object
-          getNewPaymentInfo(foundVideo.paymentPrice, function(error, paymentInfo){
-
-            if(error){
-              console.log("Failed to get payment info for video" + videoId + " with errro " + error);
-              callback(error);
-              return;
-            }
-
-            var createdView = {
-              sessionId: sessionId,
-              videoId: videoId,
-              paymentAddress: paymentInfo.paymentAddress,
-              paymentUrl: paymentInfo.paymentUrl,
-              paid: false
-            }
-
-            View(createdView).save(function(error){
-              if(error){
-                console.log("Failed to create payment info for video" + videoId + " with errro " + error);
-                callback(error);
-                return;
-              }
-
-              var returnData = {
-                videoId : videoId,
-                paymentPrice : foundVideo.paymentPrice,
-                paymentAddress : createdView.paymentAddress,
-                paymentUrl : createdView.paymentUrl,
-                paid : createdView.paid,
-                previewVideoUrl : generatePreviewUrl(videoId),
-              };
-
-              callback(null, returnData);
-              return;
-            });
-
-          });
-        }
-
+      callback(null, returnData);
+      return;
     });
 
   });
-
-
-};
+}
 
 module.exports = VideoService;

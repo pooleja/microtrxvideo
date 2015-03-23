@@ -126,7 +126,7 @@ function generatePaymentDetails(info){
     $("#payment-link").attr('href',info.paymentUrl);
 
     // Set the payment details - amount and paymentAddress
-    $("#payment-details").html('<br /> BTC: ' + info.paymentPrice + '<br />Address: ' + info.paymentAddress);
+    $("#payment-details").html('<br /> Price: ' + info.displayPrice + '<br /> BTC: ' + info.paymentPrice + '<br />Address: ' + info.paymentAddress);
 
     verifyPayment();
 }

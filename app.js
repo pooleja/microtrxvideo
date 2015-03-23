@@ -80,8 +80,9 @@ var Video = require('./models/video.js');
 // Create a registration object
    var videoRequest = {
       id : "1",
-      paymentPrice : 0.0001,
-      expireHours : 168
+      paymentPrice : 0.49,
+      expireHours : 168,
+      paymentDenomination: "USD"
    };
 
    Video(videoRequest).save(function (err, tempRegistration) {

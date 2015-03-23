@@ -25,7 +25,7 @@ router.get('/api/videos/:videoId', function(req, res) {
       return;
     }
 
-    //console.log("API call succeeded " + JSON.stringify(videoInfo));
+    console.log("API call succeeded " + JSON.stringify(videoInfo));
 
     // Success
     res.json({success : true, result: videoInfo });

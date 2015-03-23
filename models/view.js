@@ -8,7 +8,9 @@ var viewSchema = mongoose.Schema({
    paymentUrl: String,
    paid: {type: Boolean, default: false},
    paidVideoUrl: String,
-   expireDate : Date
+   expireDate : Date,
+   paymentPrice : Number,
+   displayPrice : String
 
 });
 
