@@ -311,6 +311,8 @@ function handleNewView(sessionId, foundVideo, timeoutSeconds, callback){
       return;
     }
 
+    console.log("creating new view");
+
     var createdView = {
       sessionId: sessionId,
       videoId: foundVideo.id,
@@ -318,7 +320,8 @@ function handleNewView(sessionId, foundVideo, timeoutSeconds, callback){
       paymentUrl: paymentInfo.paymentUrl,
       paid: false,
       displayPrice: priceInfo.displayPrice,
-      paymentPrice: priceInfo.btcPrice
+      paymentPrice: priceInfo.btcPrice,
+      createdDate: new Date()
     }
 
     View(createdView).save(function(error){
