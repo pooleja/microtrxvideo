@@ -12,6 +12,12 @@ router.get('/videos/:videoId', function(req, res) {
   res.render('video', { video: req.params.videoId });
 });
 
+router.get('/stats/:videoId', function(req, res) {
+  service.getVideoStats(req.params.videoId, function(error, videoData){
+    res.render('history', { data : videoData });
+  });
+});
+
 router.get('/api/videos/:videoId', function(req, res) {
 
   console.log("Getting information from API for video " + req.params.videoId + " for session " + req.sessionID + " with timeout " + req.query.timeout);
@@ -32,5 +38,7 @@ router.get('/api/videos/:videoId', function(req, res) {
 
   });
 });
+
+
 
 module.exports = router;

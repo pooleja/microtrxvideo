@@ -13,6 +13,33 @@ function VideoService(){
 
 }
 
+VideoService.prototype.getVideoStats = function(videoId, callback){
+
+  View.where({videoId : videoId}).count(function (err, count) {
+    if (err) return callback(err);
+    var totalCount = count;
+
+    View.where({videoId : videoId, paid : true}).count(function (err, count) {
+      if (err) return callback(err);
+      var paidCount = count;
+
+      View.where({videoId : videoId}).count(function (err, count) {
+        if (err) return callback(err);
+        var unpaidCount = count;
+
+        callback(null,
+          {
+            totalRequests : totalCount,
+            unpaidRequests : unpaidCount,
+            paidRequests : paidCount
+          });
+      });
+    });
+  });
+
+
+};
+
 VideoService.prototype.getVideoInfo = function(sessionId, videoId, timeout, callback){
 
   var timeoutSeconds = 0;

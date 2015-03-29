@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>microTrx</title>
+  </head>
+  <body>
+    <div class="container">
+
+      <div id="error-message" class="alert alert-danger" role="alert" hidden="true"></div>
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title">Microtrx Video Player</h3>
+        </div>
+        <div class="panel-body " >
+
+        Total Payment Requests: <%= data.totalRequests %>
+        <br />
+        Unpaid Payment Requests: <%= data.unpaidRequests %>
+        <br />
+        Paid Payment Requests: <%= data.paidRequests %>
+
+        </div>
+      </div>
+
+    <link type='css' rel='stylesheet' href='/stylesheets/bootstrap.min.css' />
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="/javascripts/jquery-2.1.1.min.js"></script>
+
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="/javascripts/bootstrap.min.js"></script>
+
+  </body>
+</html>
