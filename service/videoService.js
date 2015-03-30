@@ -23,7 +23,7 @@ VideoService.prototype.getVideoStats = function(videoId, callback){
       if (err) return callback(err);
       var paidCount = count;
 
-      View.where({videoId : videoId}).count(function (err, count) {
+      View.where({videoId : videoId, paid : false}).count(function (err, count) {
         if (err) return callback(err);
         var unpaidCount = count;
 
