@@ -12,6 +12,14 @@ router.get('/videos/:videoId', function(req, res) {
   res.render('video', { video: req.params.videoId });
 });
 
+router.get('/videos/embedded/:videoId', function(req, res) {
+  res.render('embedded', { video: req.params.videoId });
+});
+
+router.get('/videos/embedded/:videoId/example', function(req, res) {
+  res.render('embedded/example', { video: req.params.videoId });
+});
+
 router.get('/stats/:videoId', function(req, res) {
   service.getVideoStats(req.params.videoId, function(error, videoData){
     res.render('history', { data : videoData });
